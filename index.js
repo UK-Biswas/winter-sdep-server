@@ -23,6 +23,8 @@ export async function connectToMongoDB() {
   }
 }
 
+await connectToMongoDB();
+
 app.get('/', (req, res) => {
   res.send('Hello World!');
 });
