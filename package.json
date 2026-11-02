@@ -4,6 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "seed": "node src/seed/seed-events.js",
+    "test:api": "node scripts/api-smoke-test.mjs",
+    "test:e2e": "node scripts/frontend-api-test.mjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -14,6 +19,7 @@
     "cors": "^2.8.6",
     "dotenv": "^18.0.9",
     "express": "^5.3.0",
+    "jose": "^6.2.14",
     "mongodb": "^7.8.0",
     "nodemon": "^3.1.14"
   }

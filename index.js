@@ -1,34 +1,77 @@
-import express from 'express';
-import { MongoClient } from 'mongodb';
-import cors from 'cors';
-import 'dotenv/config'
+import "dotenv/config";
 
-// const express = require('express');
+import cors from "cors";
+import express from "express";
+
+import { config } from "./src/config/env.js";
+import { closeMongoDB, connectToMongoDB, getDb } from "./src/db/mongo.js";
+import { errorHandler, notFound } from "./src/middleware/error.js";
+import eventsRouter from "./src/routes/events.routes.js";
+
 const app = express();
-const port = process.env.PORT || 5000;
 
-app.use(cors())
-app.use(express.json())
+app.disable("x-powered-by");
 
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (
+        !origin ||
+        config.corsOrigins.includes("*") ||
+        config.corsOrigins.includes(origin)
+      ) {
+        return callback(null, true);
+      }
 
-const client = new MongoClient(`mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gd33szw.mongodb.net/`);
+      return callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-export async function connectToMongoDB() {
-  try {
-    await client.connect();
-    console.log("You successfully connected to MongoDB!");
-    return client;
-  } catch (err) {
-    console.dir(err);
-  }
-}
+app.use(express.json({ limit: "1mb" }));
 
-await connectToMongoDB();
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
+app.get("/", (req, res) => {
+  res.json({
+    service: "FrostTogether API",
+    status: "ok",
+    docs: "/api/health",
+  });
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+app.get("/api/health", async (req, res) => {
+  await getDb().command({ ping: 1 });
+
+  res.json({ status: "ok", database: config.dbName });
+});
+
+app.use("/api/events", eventsRouter);
+
+app.use(notFound);
+app.use(errorHandler);
+
+async function start() {
+  await connectToMongoDB();
+
+  const server = app.listen(config.port, () => {
+    console.log(`FrostTogether API listening on http://localhost:${config.port}`);
+  });
+
+  async function shutdown(signal) {
+    console.log(`\n${signal} received. Shutting down...`);
+
+    server.close(async () => {
+      await closeMongoDB();
+      process.exit(0);
+    });
+  }
+
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+}
+
+start().catch((error) => {
+  console.error("Failed to start the server:", error);
+  process.exit(1);
 });
