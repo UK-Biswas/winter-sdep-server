@@ -4,10 +4,6 @@ import { config } from "../config/env.js";
 
 const secret = new TextEncoder().encode(config.jwtSecret);
 
-/**
- * Verifies a Better Auth-issued backend JWT and returns its user payload.
- * Throws when the token is missing, tampered with, or expired.
- */
 export async function verifyToken(token) {
   const { payload } = await jwtVerify(token, secret, {
     issuer: config.jwtIssuer,
@@ -53,10 +49,6 @@ export async function requireAuth(req, res, next) {
   }
 }
 
-/**
- * Attaches `req.user` when a valid token is present. Public endpoints keep
- * working for signed-out visitors.
- */
 export async function optionalAuth(req, res, next) {
   const token = readBearerToken(req);
 
